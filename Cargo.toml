@@ -4,7 +4,13 @@ authors = ["Daniel Mueller <deso@posteo.net>"]
 version = "0.0.0"
 edition = "2021"
 license = "Apache-2.0 OR MIT"
+homepage = "https://github.com/d-e-s-o/grev"
+repository = "https://github.com/d-e-s-o/grev.git"
+description = """
+A crate for working with git revision information from a build script.
+"""
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.68"
