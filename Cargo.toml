@@ -6,6 +6,7 @@ edition = "2021"
 license = "Apache-2.0 OR MIT"
 homepage = "https://github.com/d-e-s-o/grev"
 repository = "https://github.com/d-e-s-o/grev.git"
+readme = "README.md"
 description = """
 A crate for working with git revision information from a build script.
 """
