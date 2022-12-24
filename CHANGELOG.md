@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.1.1
+-----
 - Fixed build on non-Unix systems
 - Enabled CI pipeline comprising building and linting of the project
   - Added badge indicating pipeline status
