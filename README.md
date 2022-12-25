@@ -5,6 +5,7 @@ grev
 ====
 
 - [Documentation][docs-rs]
+- [Changelog](CHANGELOG.md)
 
 A crate for working with git revision information from a build script.
 

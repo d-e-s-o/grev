@@ -2,7 +2,7 @@
 name = "grev"
 authors = ["Daniel Mueller <deso@posteo.net>"]
 version = "0.1.0"
-edition = "2021"
+edition = "2018"
 license = "Apache-2.0 OR MIT"
 homepage = "https://github.com/d-e-s-o/grev"
 repository = "https://github.com/d-e-s-o/grev.git"
