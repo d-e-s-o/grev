@@ -4,10 +4,7 @@
 #![allow(clippy::let_unit_value)]
 
 use std::borrow::Cow;
-use std::ffi::OsStr;
 use std::io::Write;
-#[cfg(unix)]
-use std::os::unix::ffi::OsStrExt as _;
 use std::path::Path;
 use std::process::Command;
 use std::process::Stdio;
@@ -106,13 +103,19 @@ fn git_run(directory: &Path, args: &[&str]) -> Result<bool> {
 /// Convert a byte slice into a [`Path`].
 #[cfg(unix)]
 fn bytes_to_path(bytes: &[u8]) -> Result<Cow<'_, Path>> {
+  use std::ffi::OsStr;
+  use std::os::unix::ffi::OsStrExt as _;
+
   Ok(AsRef::<Path>::as_ref(OsStr::from_bytes(bytes)).into())
 }
 
 /// Convert a byte slice into a [`PathBuf`].
 #[cfg(not(unix))]
 fn bytes_to_path(bytes: &[u8]) -> Result<Cow<'_, Path>> {
-  PathBuf::from(bytes.to_str()?).into()
+  use std::path::PathBuf;
+  use std::str::from_utf8;
+
+  Ok(PathBuf::from(from_utf8(bytes)?).into())
 }
 
 /// Print rerun-if-changed directives as necessary for reliable workings

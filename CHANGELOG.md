@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Fixed build on non-Unix systems
 - Switched to using edition 2018
 
 
