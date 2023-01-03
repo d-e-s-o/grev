@@ -1,7 +1,8 @@
-// Copyright (C) 2022 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2022-2023 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 #![allow(clippy::let_unit_value)]
+#![warn(clippy::print_stderr, clippy::print_stdout)]
 
 use std::borrow::Cow;
 use std::io::Write;
@@ -12,23 +13,6 @@ use std::process::Stdio;
 use anyhow::bail;
 use anyhow::Context;
 use anyhow::Result;
-
-
-// Redefine standard print macros to cause a compilation error on usage,
-// in order to force output to a provided writer.
-#[allow(unused)]
-macro_rules! println {
-  ($($arg:tt)*) => {
-    compile_error!("attempt to use `println` macro; please use `writeln` instead")
-  };
-}
-
-#[allow(unused)]
-macro_rules! print {
-  ($($arg:tt)*) => {
-    compile_error!("attempt to use `print` macro; please use `write` instead")
-  };
-}
 
 
 const GIT: &str = "git";
