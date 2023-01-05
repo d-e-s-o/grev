@@ -130,25 +130,11 @@ where
 }
 
 
-/// Retrieve a git revision identifier that either includes the tag we
-/// are on or the shortened SHA-1. It also contains an indication (`+`)
-/// whether local changes were present.
-///
-/// This function is meant to be run from a Cargo build script. It takes
-/// care of printing necessary `rerun-if-changed` directives to the
-/// provided writer. As a result, callers are advised to invoke it only
-/// once and cache the result.
-///
-/// The function works on a best-effort basis: if git is not available
-/// or no git repository is present, it will fail gracefully by
-/// returning `Ok(None)`.
 // TODO: Support reading information from .cargo_vcs_info.json.
-pub fn get_revision<P, W>(directory: P, writer: W) -> Result<Option<String>>
+fn revision_bare_impl<W>(dir: &Path, writer: W) -> Result<Option<String>>
 where
-  P: AsRef<Path>,
   W: Write,
 {
-  let dir = directory.as_ref();
   let mut w = writer;
 
   // As a first step we check whether we are in a git repository and
@@ -182,9 +168,6 @@ where
   // just not going down that road.
   let () = print_rerun_if_changed(dir, &mut w)?;
 
-  let local_changes = git_raw_output(dir, &["status", "--porcelain", "--untracked-files=no"])?;
-  let modified = !local_changes.is_empty();
-
   // If we are on a tag then just include the tag name. Otherwise use
   // the shortened SHA-1.
   let revision = if let Ok(tag) = git_output(dir, &["describe", "--exact-match", "--tags", "HEAD"])
@@ -193,6 +176,41 @@ where
   } else {
     git_output(dir, &["rev-parse", "--short", "HEAD"])?
   };
-  let revision = format!("{}{}", revision.trim(), if modified { "+" } else { "" });
-  Ok(Some(revision))
+  Ok(Some(revision.trim().to_string()))
+}
+
+
+fn revision_impl<W>(dir: &Path, writer: W) -> Result<Option<String>>
+where
+  W: Write,
+{
+  if let Some(revision) = revision_bare_impl(dir, writer)? {
+    let local_changes = git_raw_output(dir, &["status", "--porcelain", "--untracked-files=no"])?;
+    let modified = !local_changes.is_empty();
+    let revision = format!("{}{}", revision, if modified { "+" } else { "" });
+    Ok(Some(revision))
+  } else {
+    Ok(None)
+  }
+}
+
+
+/// Retrieve a git revision identifier that either includes the tag we
+/// are on or the shortened SHA-1. It also contains an indication (`+`)
+/// whether local changes were present.
+///
+/// This function is meant to be run from a Cargo build script. It takes
+/// care of printing necessary `rerun-if-changed` directives to the
+/// provided writer. As a result, callers are advised to invoke it only
+/// once and cache the result.
+///
+/// The function works on a best-effort basis: if git is not available
+/// or no git repository is present, it will fail gracefully by
+/// returning `Ok(None)`.
+pub fn get_revision<P, W>(directory: P, writer: W) -> Result<Option<String>>
+where
+  P: AsRef<Path>,
+  W: Write,
+{
+  revision_impl(directory.as_ref(), writer)
 }
