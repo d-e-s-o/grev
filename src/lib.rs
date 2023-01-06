@@ -5,6 +5,7 @@
 #![warn(clippy::print_stderr, clippy::print_stdout)]
 
 use std::borrow::Cow;
+use std::ffi::OsStr;
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
@@ -87,7 +88,6 @@ fn git_run(directory: &Path, args: &[&str]) -> Result<bool> {
 /// Convert a byte slice into a [`Path`].
 #[cfg(unix)]
 fn bytes_to_path(bytes: &[u8]) -> Result<Cow<'_, Path>> {
-  use std::ffi::OsStr;
   use std::os::unix::ffi::OsStrExt as _;
 
   Ok(AsRef::<Path>::as_ref(OsStr::from_bytes(bytes)).into())
@@ -104,8 +104,10 @@ fn bytes_to_path(bytes: &[u8]) -> Result<Cow<'_, Path>> {
 
 /// Print rerun-if-changed directives as necessary for reliable workings
 /// in Cargo.
-fn print_rerun_if_changed<W>(directory: &Path, writer: &mut W) -> Result<()>
+fn print_rerun_if_changed<S, I, W>(directory: &Path, sources: S, writer: &mut W) -> Result<()>
 where
+  S: IntoIterator<Item = I>,
+  I: AsRef<Path>,
   W: Write,
 {
   let git_dir = git_raw_output(directory, &["rev-parse", "--git-dir"])?;
@@ -125,14 +127,23 @@ where
       git_dir.join(path).display()
     )
   })?;
+  let () = sources.into_iter().try_for_each(|path| {
+    writeln!(
+      writer,
+      "cargo:rerun-if-changed={}",
+      git_dir.join(path.as_ref()).display()
+    )
+  })?;
 
   Ok(())
 }
 
 
 // TODO: Support reading information from .cargo_vcs_info.json.
-fn revision_bare_impl<W>(dir: &Path, writer: W) -> Result<Option<String>>
+fn revision_bare_impl<S, I, W>(dir: &Path, sources: S, writer: W) -> Result<Option<String>>
 where
+  S: IntoIterator<Item = I>,
+  I: AsRef<Path>,
   W: Write,
 {
   let mut w = writer;
@@ -166,7 +177,7 @@ where
   // would not run re-run properly in that case. But we'd be random
   // guessing where the directory structure could manifest and we are
   // just not going down that road.
-  let () = print_rerun_if_changed(dir, &mut w)?;
+  let () = print_rerun_if_changed(dir, sources, &mut w)?;
 
   // If we are on a tag then just include the tag name. Otherwise use
   // the shortened SHA-1.
@@ -180,11 +191,13 @@ where
 }
 
 
-fn revision_impl<W>(dir: &Path, writer: W) -> Result<Option<String>>
+fn revision_impl<S, I, W>(dir: &Path, sources: S, writer: W) -> Result<Option<String>>
 where
+  S: IntoIterator<Item = I>,
+  I: AsRef<Path>,
   W: Write,
 {
-  if let Some(revision) = revision_bare_impl(dir, writer)? {
+  if let Some(revision) = revision_bare_impl(dir, sources, writer)? {
     let local_changes = git_raw_output(dir, &["status", "--porcelain", "--untracked-files=no"])?;
     let modified = !local_changes.is_empty();
     let revision = format!("{}{}", revision, if modified { "+" } else { "" });
@@ -212,5 +225,7 @@ where
   P: AsRef<Path>,
   W: Write,
 {
-  revision_impl(directory.as_ref(), writer)
+  let sources = [OsStr::new(""); 0];
+
+  revision_impl(directory.as_ref(), sources.iter(), writer)
 }
