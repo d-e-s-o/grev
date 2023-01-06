@@ -378,16 +378,16 @@ fn list_tracked_objects(directory: &Path) -> Result<Vec<PathBuf>> {
     OsStr::new("--full-name"),
     OsStr::new("-z"),
   ];
-  // TODO: Strictly speaking we should not be working on `String`/`str`
-  //       here, as we are dealing with paths. `OsString`/`OsStr` are
-  //       more appropriate. However, they don't really provide any of
-  //       the desired functionality necessary for "parsing".
-  let files = git_output(directory, args)?;
-  let paths = files
-    .trim()
-    .split_terminator('\0')
-    .map(|object| top_level.join(Path::new(object)))
-    .collect();
+  let output = git_raw_output(directory, args)?;
+  let paths = output
+    .split(|byte| *byte == b'\0')
+    // The output may be terminated by a NUL byte and that will cause an
+    // empty "object" to show up. We lack str's split_terminator, which
+    // would cater to this case nicely, so we have to explicitly filter
+    // that out.
+    .filter(|object| !object.is_empty())
+    .map(|object| Ok(top_level.join(bytes_to_path(object)?)))
+    .collect::<Result<_>>()?;
   Ok(paths)
 }
 
