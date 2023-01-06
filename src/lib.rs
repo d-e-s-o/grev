@@ -6,6 +6,7 @@
 
 use std::borrow::Cow;
 use std::ffi::OsStr;
+use std::io::stdout;
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
@@ -220,6 +221,7 @@ where
 /// The function works on a best-effort basis: if git is not available
 /// or no git repository is present, it will fail gracefully by
 /// returning `Ok(None)`.
+#[deprecated(note = "use git_revision() function instead")]
 pub fn get_revision<P, W>(directory: P, writer: W) -> Result<Option<String>>
 where
   P: AsRef<Path>,
@@ -228,4 +230,31 @@ where
   let sources = [OsStr::new(""); 0];
 
   revision_impl(directory.as_ref(), sources.iter(), writer)
+}
+
+/// Retrieve a git revision identifier that either includes the tag we
+/// are on or the shortened SHA-1. It also contains an indication (`+`)
+/// whether local changes were present.
+///
+/// This function is meant to be run from a Cargo build script. It takes
+/// care of printing necessary `rerun-if-changed` directives to stdout
+/// as expected by `cargo`. As a result, callers are advised to invoke
+/// it only once and cache the result.
+///
+/// The provided `sources` should be a list of source files or
+/// directories (excluding any `git` data) that influence the components
+/// embedding the git revision produced in one way or another. Typically
+/// including `src/` in there is sufficient, but more advanced
+/// applications may depend on additional data.
+///
+/// The function works on a best-effort basis: if git is not available
+/// or no git repository is present, it will fail gracefully by
+/// returning `Ok(None)`.
+pub fn git_revision<D, S, I>(directory: D, sources: S) -> Result<Option<String>>
+where
+  D: AsRef<Path>,
+  S: IntoIterator<Item = I>,
+  I: AsRef<Path>,
+{
+  revision_impl(directory.as_ref(), sources, stdout().lock())
 }

@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Deprecated `get_revision` function in favor of new `git_revision`
+
+
 0.1.1
 -----
 - Fixed build on non-Unix systems
