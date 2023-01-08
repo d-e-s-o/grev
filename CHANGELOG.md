@@ -1,6 +1,8 @@
 Unreleased
 ----------
 - Deprecated `get_revision` function in favor of new `git_revision`
+- Introduced `git_revision_bare` function for cases where a local
+  modifications modifier is not desired
 
 
 0.1.1

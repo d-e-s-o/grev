@@ -232,6 +232,36 @@ where
   revision_impl(directory.as_ref(), sources.iter(), writer)
 }
 
+
+/// Retrieve a git revision identifier that either includes the tag we
+/// are on or the shortened SHA-1.
+///
+/// This function is meant to be run from a Cargo build script. It takes
+/// care of printing necessary `rerun-if-changed` directives to the
+/// provided writer. As a result, callers are advised to invoke it only
+/// once and cache the result.
+///
+/// The function works on a best-effort basis: if git is not available
+/// or no git repository is present, it will fail gracefully by
+/// returning `Ok(None)`.
+///
+/// # Notes
+/// Compared to [`git_revision`], the revision identifier produced by
+/// this function does not include any indication of local changes
+/// (`+`).
+pub fn git_revision_bare<D>(directory: D) -> Result<Option<String>>
+where
+  D: AsRef<Path>,
+{
+  // Because we don't care about local changes, we don't need to take
+  // into consideration additional sources. All we care about are some
+  // git files, and they are tracked automatically.
+  let sources = [OsStr::new(""); 0];
+
+  revision_bare_impl(directory.as_ref(), sources.iter(), stdout().lock())
+}
+
+
 /// Retrieve a git revision identifier that either includes the tag we
 /// are on or the shortened SHA-1. It also contains an indication (`+`)
 /// whether local changes were present.
