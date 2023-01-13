@@ -140,15 +140,14 @@ where
 }
 
 
-// TODO: Support reading information from .cargo_vcs_info.json.
-fn revision_bare_impl<S, I, W>(dir: &Path, sources: S, writer: W) -> Result<Option<String>>
+/// Ensure that git is usable and that `directory` points somewhere into
+/// a valid git repository.
+fn with_valid_git<W, F>(dir: &Path, writer: W, f: F) -> Result<Option<String>>
 where
-  S: IntoIterator<Item = I>,
-  I: AsRef<Path>,
   W: Write,
+  F: FnOnce(&Path, W) -> Result<Option<String>>,
 {
   let mut w = writer;
-
   // As a first step we check whether we are in a git repository and
   // whether git is working to begin with. If not, we can't do much; yet
   // we still want to allow the build to continue, so we merely print a
@@ -172,6 +171,19 @@ where
       return Ok(None)
     },
   }
+
+  f(dir, w)
+}
+
+
+// TODO: Support reading information from .cargo_vcs_info.json.
+fn revision_bare_impl<S, I, W>(dir: &Path, sources: S, writer: W) -> Result<Option<String>>
+where
+  S: IntoIterator<Item = I>,
+  I: AsRef<Path>,
+  W: Write,
+{
+  let mut w = writer;
 
   // Note that yes, it is conceivable that we bailed out above because
   // no git repository was found, later the user created one, and we
@@ -227,9 +239,10 @@ where
   P: AsRef<Path>,
   W: Write,
 {
-  let sources = [OsStr::new(""); 0];
-
-  revision_impl(directory.as_ref(), sources.iter(), writer)
+  with_valid_git(directory.as_ref(), writer, |directory, writer| {
+    let sources = [OsStr::new(""); 0];
+    revision_impl(directory, sources.iter(), writer)
+  })
 }
 
 
@@ -253,12 +266,13 @@ pub fn git_revision_bare<D>(directory: D) -> Result<Option<String>>
 where
   D: AsRef<Path>,
 {
-  // Because we don't care about local changes, we don't need to take
-  // into consideration additional sources. All we care about are some
-  // git files, and they are tracked automatically.
-  let sources = [OsStr::new(""); 0];
-
-  revision_bare_impl(directory.as_ref(), sources.iter(), stdout().lock())
+  with_valid_git(directory.as_ref(), stdout().lock(), |directory, writer| {
+    // Because we don't care about local changes, we don't need to take
+    // into consideration additional sources. All we care about are some
+    // git files, and they are tracked automatically.
+    let sources = [OsStr::new(""); 0];
+    revision_bare_impl(directory, sources.iter(), writer)
+  })
 }
 
 
@@ -286,5 +300,7 @@ where
   S: IntoIterator<Item = I>,
   I: AsRef<Path>,
 {
-  revision_impl(directory.as_ref(), sources, stdout().lock())
+  with_valid_git(directory.as_ref(), stdout().lock(), |directory, writer| {
+    revision_impl(directory, sources, writer)
+  })
 }
