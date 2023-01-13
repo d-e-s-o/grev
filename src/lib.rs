@@ -111,7 +111,7 @@ where
   I: AsRef<Path>,
   W: Write,
 {
-  let git_dir = git_raw_output(directory, &["rev-parse", "--git-dir"])?;
+  let git_dir = git_raw_output(directory, &["rev-parse", "--absolute-git-dir"])?;
   // Make sure to exclude the trailing newline that git unconditionally
   // emits for the above sub-command.
   let git_dir = bytes_to_path(&git_dir[..git_dir.len() - 1])?;
