@@ -21,17 +21,23 @@ const GIT: &str = "git";
 
 
 /// Format a git command with the given list of arguments as a string.
-fn git_command(args: &[&str]) -> String {
+fn git_command<A>(args: &[A]) -> String
+where
+  A: AsRef<OsStr>,
+{
   args.iter().fold(GIT.to_string(), |mut cmd, arg| {
     cmd += " ";
-    cmd += arg;
+    cmd += &arg.as_ref().to_string_lossy();
     cmd
   })
 }
 
 
 /// Run git with the provided arguments and read the output it emits.
-fn git_raw_output(directory: &Path, args: &[&str]) -> Result<Vec<u8>> {
+fn git_raw_output<A>(directory: &Path, args: &[A]) -> Result<Vec<u8>>
+where
+  A: AsRef<OsStr>,
+{
   let git = Command::new(GIT)
     .current_dir(directory)
     .stdin(Stdio::null())
@@ -59,7 +65,10 @@ fn git_raw_output(directory: &Path, args: &[&str]) -> Result<Vec<u8>> {
 
 /// Run git with the provided arguments and read the output it emits, as
 /// a `String`.
-fn git_output(directory: &Path, args: &[&str]) -> Result<String> {
+fn git_output<A>(directory: &Path, args: &[A]) -> Result<String>
+where
+  A: AsRef<OsStr>,
+{
   let output = git_raw_output(directory, args)?;
   let output = String::from_utf8(output).with_context(|| {
     format!(
@@ -73,7 +82,10 @@ fn git_output(directory: &Path, args: &[&str]) -> Result<String> {
 
 /// Run git with the provided arguments and report the status of the
 /// command.
-fn git_run(directory: &Path, args: &[&str]) -> Result<bool> {
+fn git_run<A>(directory: &Path, args: &[A]) -> Result<bool>
+where
+  A: AsRef<OsStr>,
+{
   Command::new(GIT)
     .current_dir(directory)
     .stdin(Stdio::null())
