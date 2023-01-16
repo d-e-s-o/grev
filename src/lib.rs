@@ -9,6 +9,7 @@ use std::ffi::OsStr;
 use std::io::stdout;
 use std::io::Write;
 use std::path::Path;
+use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
 
@@ -271,7 +272,7 @@ where
 /// returning `Ok(None)`.
 ///
 /// # Notes
-/// Compared to [`git_revision`], the revision identifier produced by
+/// Compared to [`git_revision_auto`], the revision identifier produced by
 /// this function does not include any indication of local changes
 /// (`+`).
 pub fn git_revision_bare<D>(directory: D) -> Result<Option<String>>
@@ -306,6 +307,7 @@ where
 /// The function works on a best-effort basis: if git is not available
 /// or no git repository is present, it will fail gracefully by
 /// returning `Ok(None)`.
+#[deprecated(note = "use git_revision_auto() function instead")]
 pub fn git_revision<D, S, I>(directory: D, sources: S) -> Result<Option<String>>
 where
   D: AsRef<Path>,
@@ -313,6 +315,57 @@ where
   I: AsRef<Path>,
 {
   with_valid_git(directory.as_ref(), stdout().lock(), |directory, writer| {
+    revision_impl(directory, sources, writer)
+  })
+}
+
+
+/// List all tracked objects.
+fn list_tracked_objects(directory: &Path) -> Result<Vec<PathBuf>> {
+  let top_level = git_raw_output(directory, &["rev-parse", "--show-toplevel"])?;
+  let top_level = bytes_to_path(&top_level[..top_level.len() - 1])?;
+
+  let args = &[
+    OsStr::new("-C"),
+    top_level.as_os_str(),
+    OsStr::new("ls-files"),
+    OsStr::new("--full-name"),
+    OsStr::new("-z"),
+  ];
+  let output = git_raw_output(directory, args)?;
+  let paths = output
+    .split(|byte| *byte == b'\0')
+    // The output may be terminated by a NUL byte and that will cause an
+    // empty "object" to show up. We lack str's split_terminator, which
+    // would cater to this case nicely, so we have to explicitly filter
+    // that out.
+    .filter(|object| !object.is_empty())
+    .map(|object| Ok(top_level.join(bytes_to_path(object)?)))
+    .collect::<Result<_>>()?;
+  Ok(paths)
+}
+
+
+/// Retrieve a git revision identifier that either includes the tag we
+/// are on or the shortened SHA-1. It also contains an indication (`+`)
+/// whether local changes were present.
+///
+/// This function is meant to be run from a Cargo build script. It takes
+/// care of printing necessary `rerun-if-changed` directives to stdout
+/// as expected by `cargo`. As a result, callers are advised to invoke
+/// it only once and cache the result.
+///
+/// The function works on a best-effort basis: if git is not available
+/// or no git repository is present, it will fail gracefully by
+/// returning `Ok(None)`.
+// TODO: Rename to `git_revision` once it has been removed with the next
+//       breaking release.
+pub fn git_revision_auto<D>(directory: D) -> Result<Option<String>>
+where
+  D: AsRef<Path>,
+{
+  with_valid_git(directory.as_ref(), stdout().lock(), |directory, writer| {
+    let sources = list_tracked_objects(directory)?;
     revision_impl(directory, sources, writer)
   })
 }
