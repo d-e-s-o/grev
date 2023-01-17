@@ -243,6 +243,10 @@ where
 /// provided writer. As a result, callers are advised to invoke it only
 /// once and cache the result.
 ///
+/// The provided `directory` is a path expected to point somewhere into
+/// the git repository in question. Typically, it can simply be set to
+/// the value of the `CARGO_MANIFEST_DIR` variable, as set by Cargo.
+///
 /// The function works on a best-effort basis: if git is not available
 /// or no git repository is present, it will fail gracefully by
 /// returning `Ok(None)`.
@@ -266,6 +270,10 @@ where
 /// care of printing necessary `rerun-if-changed` directives to the
 /// provided writer. As a result, callers are advised to invoke it only
 /// once and cache the result.
+///
+/// The provided `directory` is a path expected to point somewhere into
+/// the git repository in question. Typically, it can simply be set to
+/// the value of the `CARGO_MANIFEST_DIR` variable, as set by Cargo.
 ///
 /// The function works on a best-effort basis: if git is not available
 /// or no git repository is present, it will fail gracefully by
@@ -297,6 +305,10 @@ where
 /// care of printing necessary `rerun-if-changed` directives to stdout
 /// as expected by `cargo`. As a result, callers are advised to invoke
 /// it only once and cache the result.
+///
+/// The provided `directory` is a path expected to point somewhere into
+/// the git repository in question. Typically, it can simply be set to
+/// the value of the `CARGO_MANIFEST_DIR` variable, as set by Cargo.
 ///
 /// The provided `sources` should be a list of source files or
 /// directories (excluding any `git` data) that influence the components
@@ -354,6 +366,10 @@ fn list_tracked_objects(directory: &Path) -> Result<Vec<PathBuf>> {
 /// care of printing necessary `rerun-if-changed` directives to stdout
 /// as expected by `cargo`. As a result, callers are advised to invoke
 /// it only once and cache the result.
+///
+/// The provided `directory` is a path expected to point somewhere into
+/// the git repository in question. Typically, it can simply be set to
+/// the value of the `CARGO_MANIFEST_DIR` variable, as set by Cargo.
 ///
 /// The function works on a best-effort basis: if git is not available
 /// or no git repository is present, it will fail gracefully by
