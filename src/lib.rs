@@ -1,6 +1,40 @@
 // Copyright (C) 2022-2023 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+//! This library provides the means for including partly opinionated git
+//! revision identifiers inside a Rust project (typically a binary). It
+//! provides a set of functions, all meant to be invoked from a build
+//! script, which inquire the current git revision being built against.
+//!
+//! Typical usage could look like this:
+//! ```no_run
+//! # use anyhow::Result;
+//! use grev::git_revision_auto;
+//!
+//! fn main() -> Result<()> {
+//!   let dir = env!("CARGO_MANIFEST_DIR");
+//!   if let Some(git_rev) = git_revision_auto(dir)? {
+//!     println!(
+//!       "cargo:rustc-env=VERSION={} ({})",
+//!       env!("CARGO_PKG_VERSION"),
+//!       git_rev
+//!     );
+//!   } else {
+//!     println!("cargo:rustc-env=VERSION={}", env!("CARGO_PKG_VERSION"));
+//!   }
+//!   Ok(())
+//! }
+//! ```
+//!
+//! This logic, contained in a Cargo build script (typically `build.rs`,
+//! located in a project's root), will cause the environment variable
+//! `VERSION` to be set unconditionally when building the program. It
+//! will contain the package version and, if available, the git revision
+//! at which the build happened (including a modifier indicating if
+//! local changes were present). If building at a git tag, the revision
+//! string will include this tag. The main program would then inquire
+//! the version string using `env!("VERSION")`.
+
 #![allow(clippy::let_unit_value)]
 #![warn(clippy::print_stderr, clippy::print_stdout)]
 
