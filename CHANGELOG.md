@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.1.3
+-----
 - Deprecated `git_revision` function in favor of new `git_revision_auto`
 
 
