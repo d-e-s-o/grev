@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Switched to using Rust 2021 Edition
+
+
 0.1.3
 -----
 - Deprecated `git_revision` function in favor of new `git_revision_auto`

@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2022-2025 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 //! This library provides the means for including partly opinionated git
@@ -291,8 +291,7 @@ where
   W: Write,
 {
   with_valid_git(directory.as_ref(), writer, |directory, writer| {
-    let sources = [OsStr::new(""); 0];
-    revision_impl(directory, sources.iter(), writer)
+    revision_impl::<[&OsStr; 0], &OsStr, _>(directory, [], writer)
   })
 }
 
@@ -325,8 +324,7 @@ where
     // Because we don't care about local changes, we don't need to take
     // into consideration additional sources. All we care about are some
     // git files, and they are tracked automatically.
-    let sources = [OsStr::new(""); 0];
-    revision_bare_impl(directory, sources.iter(), writer)
+    revision_bare_impl::<[&OsStr; 0], &OsStr, _>(directory, [], writer)
   })
 }
 
