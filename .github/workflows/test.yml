@@ -31,11 +31,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v3
-    - uses: actions-rs/toolchain@v1
+    - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: ${{ matrix.rust }}
-        profile: minimal
-        override: true
     - name: Build
       run:
         cargo build --lib --tests
@@ -44,11 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          components: clippy
-          override: true
+      - uses: dtolnay/rust-toolchain@stable
       - run: cargo clippy --lib --bins --tests --examples -- -A unknown_lints -D warnings
   cargo-doc:
     name: Generate documentation
@@ -57,8 +51,5 @@ jobs:
       RUSTDOCFLAGS: '-A unknown_lints -A renamed_and_removed_lints -D warnings'
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - uses: dtolnay/rust-toolchain@stable
       - run: cargo doc --no-deps
