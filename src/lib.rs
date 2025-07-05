@@ -35,9 +35,6 @@
 //! string will include this tag. The main program would then inquire
 //! the version string using `env!("VERSION")`.
 
-#![allow(clippy::let_unit_value)]
-#![warn(clippy::print_stderr, clippy::print_stdout)]
-
 use std::borrow::Cow;
 use std::ffi::OsStr;
 use std::io::stdout;
