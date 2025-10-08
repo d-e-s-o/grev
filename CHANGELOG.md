@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Updated examples to use runtime environment variable query
 - Switched to using Rust 2021 Edition
 
 
