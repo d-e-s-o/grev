@@ -27,7 +27,7 @@ jobs:
       matrix:
         # Please adjust README, `rust-version` in Cargo.toml, and `msrv`
         # in .clippy.toml when bumping version.
-        rust: [1.68.0, stable]
+        rust: [1.74.0, stable]
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
