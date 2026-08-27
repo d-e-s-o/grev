@@ -9,14 +9,14 @@
 //! Typical usage could look like this:
 //! ```no_run
 //! # use std::env;
-//! use grev::git_revision_auto;
+//! use grev::git_revision;
 //!
 //! fn main() {
 //!   let manifest_dir =
 //!     env::var_os("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR variable not set");
 //!   let pkg_version = env::var("CARGO_PKG_VERSION").expect("CARGO_PKG_VERSION variable not set");
 //!
-//!   let result = git_revision_auto(manifest_dir).expect("failed to retrieve Git revision");
+//!   let result = git_revision(manifest_dir).expect("failed to retrieve Git revision");
 //!   if let Some(git_rev) = result {
 //!     println!("cargo:rustc-env=VERSION={pkg_version} ({git_rev})");
 //!   } else {
@@ -288,7 +288,7 @@ where
 /// returning `Ok(None)`.
 ///
 /// # Notes
-/// Compared to [`git_revision_auto`], the revision identifier produced by
+/// Compared to [`git_revision`], the revision identifier produced by
 /// this function does not include any indication of local changes
 /// (`+`).
 pub fn git_revision_bare<D>(directory: D) -> Result<Option<String>>
@@ -346,9 +346,7 @@ fn list_tracked_objects(directory: &Path) -> Result<Vec<PathBuf>> {
 /// The function works on a best-effort basis: if git is not available
 /// or no git repository is present, it will fail gracefully by
 /// returning `Ok(None)`.
-// TODO: Rename to `git_revision` once it has been removed with the next
-//       breaking release.
-pub fn git_revision_auto<D>(directory: D) -> Result<Option<String>>
+pub fn git_revision<D>(directory: D) -> Result<Option<String>>
 where
   D: AsRef<Path>,
 {
