@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Bumped minimum supported Rust version to `1.68`
+
+
 0.1.4
 -----
 - Updated examples to use runtime environment variable query

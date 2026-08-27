@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2025 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2022-2026 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 //! This library provides the means for including partly opinionated git
@@ -16,7 +16,8 @@
 //! fn main() -> Result<()> {
 //!   let manifest_dir =
 //!     env::var_os("CARGO_MANIFEST_DIR").context("CARGO_MANIFEST_DIR variable not set")?;
-//!   let pkg_version = env::var("CARGO_PKG_VERSION").context("CARGO_PKG_VERSION variable not set")?;
+//!   let pkg_version =
+//!     env::var("CARGO_PKG_VERSION").context("CARGO_PKG_VERSION variable not set")?;
 //!
 //!   if let Some(git_rev) = git_revision_auto(manifest_dir)? {
 //!     println!("cargo:rustc-env=VERSION={pkg_version} ({git_rev})");
@@ -80,7 +81,7 @@ where
 
   if !git.status.success() {
     let code = if let Some(code) = git.status.code() {
-      format!(" ({})", code)
+      format!(" ({code})")
     } else {
       String::new()
     };
@@ -210,8 +211,7 @@ where
     Err(err) => {
       writeln!(
         w,
-        "cargo:warning=Failed to invoke `git`; unable to embed git revision: {}",
-        err
+        "cargo:warning=Failed to invoke `git`; unable to embed git revision: {err}"
       )?;
       return Ok(None)
     },
