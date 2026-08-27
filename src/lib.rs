@@ -35,18 +35,64 @@
 //! the version string using `env!("VERSION")`.
 
 use std::borrow::Cow;
+use std::error::Error as StdError;
 use std::ffi::OsStr;
+use std::fmt::Debug;
+use std::fmt::Display;
+use std::fmt::Formatter;
+use std::fmt::Result as FmtResult;
 use std::io::stdout;
-use std::io::Error;
-use std::io::Result;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
+use std::result;
 
 
 const GIT: &str = "git";
+
+
+/// The error type used by the crate.
+pub type Error = Box<dyn StdError + Send + Sync>;
+
+type Result<T, E = ErrorInt> = result::Result<T, E>;
+
+
+/// An [`Error`][StdError] implementation with user-friendly [`Debug`]
+/// and [`Display`] impls.
+///
+/// We want this wrapper and not work with `Box<dyn StdError>`
+/// everywhere, because a `String` can implicitly converted into the
+/// latter, but we absolutely do not want its `Debug` impl to come into
+/// play.
+struct ErrorInt(Box<str>);
+
+impl Display for ErrorInt {
+  #[inline]
+  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+    Display::fmt(&self.0, f)
+  }
+}
+
+impl Debug for ErrorInt {
+  #[inline]
+  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+    Display::fmt(self, f)
+  }
+}
+
+impl StdError for ErrorInt {}
+
+impl<S> From<S> for ErrorInt
+where
+  S: Into<Box<str>>,
+{
+  #[inline]
+  fn from(other: S) -> Self {
+    ErrorInt(other.into())
+  }
+}
 
 
 /// Format a git command with the given list of arguments as a string.
@@ -72,7 +118,7 @@ where
     .stdin(Stdio::null())
     .args(args)
     .output()
-    .map_err(|err| Error::other(format!("failed to run `{}`: {err}", git_command(args))))?;
+    .map_err(|err| format!("failed to run `{}`: {err}", git_command(args)))?;
 
   if !git.status.success() {
     let code = if let Some(code) = git.status.code() {
@@ -81,7 +127,7 @@ where
       String::new()
     };
 
-    Err(Error::other(format!(
+    Err(ErrorInt::from(format!(
       "`{}` reported non-zero exit-status{}",
       git_command(args),
       code
@@ -100,10 +146,10 @@ where
 {
   let output = git_raw_output(directory, args)?;
   let output = String::from_utf8(output).map_err(|err| {
-    Error::other(format!(
+    format!(
       "failed to read `{}` output as UTF-8 string: {err}",
       git_command(args)
-    ))
+    )
   })?;
   Ok(output)
 }
@@ -122,7 +168,7 @@ where
     .stderr(Stdio::null())
     .args(args)
     .status()
-    .map_err(|err| Error::other(format!("failed to run `{}`: {err}", git_command(args))))
+    .map_err(|err| ErrorInt::from(format!("failed to run `{}`: {err}", git_command(args))))
     .map(|status| status.success())
 }
 
@@ -138,17 +184,13 @@ fn bytes_to_path(bytes: &[u8]) -> Result<Cow<'_, Path>> {
 /// Convert a byte slice into a [`PathBuf`].
 #[cfg(not(unix))]
 fn bytes_to_path(bytes: &[u8]) -> Result<Cow<'_, Path>> {
-  use std::io::ErrorKind;
   use std::path::PathBuf;
   use std::str::from_utf8;
 
   let path = from_utf8(bytes).map_err(|_err| {
-    Error::new(
-      ErrorKind::InvalidData,
-      format!(
-        "path `{}` contains non-UTF-8 characters",
-        String::from_utf8_lossy(bytes)
-      ),
+    format!(
+      "path `{}` contains non-UTF-8 characters",
+      String::from_utf8_lossy(bytes)
     )
   })?;
   Ok(PathBuf::from(path).into())
@@ -178,6 +220,7 @@ where
       "cargo:rerun-if-changed={}",
       git_dir.join(path).display()
     )
+    .map_err(|err| format!("failed to write Cargo rerun directive: {err}"))
   })?;
   let () = sources.into_iter().try_for_each(|path| {
     writeln!(
@@ -185,6 +228,7 @@ where
       "cargo:rerun-if-changed={}",
       git_dir.join(path.as_ref()).display()
     )
+    .map_err(|err| format!("failed to write Cargo rerun directive: {err}"))
   })?;
 
   Ok(())
@@ -210,14 +254,16 @@ where
       writeln!(
         w,
         "cargo:warning=Not in a git repository; unable to embed git revision"
-      )?;
+      )
+      .map_err(|err| format!("failed to write Cargo warning: {err}"))?;
       return Ok(None)
     },
     Err(err) => {
       writeln!(
         w,
         "cargo:warning=Failed to invoke `git`; unable to embed git revision: {err}"
-      )?;
+      )
+      .map_err(|err| format!("failed to write Cargo warning: {err}"))?;
       return Ok(None)
     },
   }
@@ -291,7 +337,7 @@ where
 /// Compared to [`git_revision`], the revision identifier produced by
 /// this function does not include any indication of local changes
 /// (`+`).
-pub fn git_revision_bare<D>(directory: D) -> Result<Option<String>>
+pub fn git_revision_bare<D>(directory: D) -> Result<Option<String>, Error>
 where
   D: AsRef<Path>,
 {
@@ -301,6 +347,7 @@ where
     // git files, and they are tracked automatically.
     revision_bare_impl::<[&OsStr; 0], &OsStr, _>(directory, [], writer)
   })
+  .map_err(Error::from)
 }
 
 
@@ -346,7 +393,7 @@ fn list_tracked_objects(directory: &Path) -> Result<Vec<PathBuf>> {
 /// The function works on a best-effort basis: if git is not available
 /// or no git repository is present, it will fail gracefully by
 /// returning `Ok(None)`.
-pub fn git_revision<D>(directory: D) -> Result<Option<String>>
+pub fn git_revision<D>(directory: D) -> Result<Option<String>, Error>
 where
   D: AsRef<Path>,
 {
@@ -354,4 +401,29 @@ where
     let sources = list_tracked_objects(directory)?;
     revision_impl(directory, sources, writer)
   })
+  .map_err(Error::from)
+}
+
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+
+  fn _assert_send_sync() -> impl Send + Sync {
+    ErrorInt::from("test")
+  }
+
+
+  /// Check various operations on our error types.
+  #[test]
+  fn all_things_errors() {
+    let err = ErrorInt::from("foobar");
+    assert_eq!(format!("{err}"), "foobar");
+    assert_eq!(format!("{err:?}"), "foobar");
+
+    let err = Error::from(err);
+    assert_eq!(format!("{err}"), "foobar");
+    assert_eq!(format!("{err:?}"), "foobar");
+  }
 }
