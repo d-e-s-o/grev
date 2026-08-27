@@ -38,6 +38,14 @@ jobs:
     - name: Build
       run:
         cargo build --lib --tests
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test
+        run: cargo test
   clippy:
     name: Lint with clippy
     runs-on: ubuntu-latest
