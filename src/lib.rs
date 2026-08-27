@@ -272,34 +272,6 @@ where
 
 
 /// Retrieve a git revision identifier that either includes the tag we
-/// are on or the shortened SHA-1. It also contains an indication (`+`)
-/// whether local changes were present.
-///
-/// This function is meant to be run from a Cargo build script. It takes
-/// care of printing necessary `rerun-if-changed` directives to the
-/// provided writer. As a result, callers are advised to invoke it only
-/// once and cache the result.
-///
-/// The provided `directory` is a path expected to point somewhere into
-/// the git repository in question. Typically, it can simply be set to
-/// the value of the `CARGO_MANIFEST_DIR` variable, as set by Cargo.
-///
-/// The function works on a best-effort basis: if git is not available
-/// or no git repository is present, it will fail gracefully by
-/// returning `Ok(None)`.
-#[deprecated(note = "use git_revision() function instead")]
-pub fn get_revision<P, W>(directory: P, writer: W) -> Result<Option<String>>
-where
-  P: AsRef<Path>,
-  W: Write,
-{
-  with_valid_git(directory.as_ref(), writer, |directory, writer| {
-    revision_impl::<[&OsStr; 0], &OsStr, _>(directory, [], writer)
-  })
-}
-
-
-/// Retrieve a git revision identifier that either includes the tag we
 /// are on or the shortened SHA-1.
 ///
 /// This function is meant to be run from a Cargo build script. It takes
@@ -328,41 +300,6 @@ where
     // into consideration additional sources. All we care about are some
     // git files, and they are tracked automatically.
     revision_bare_impl::<[&OsStr; 0], &OsStr, _>(directory, [], writer)
-  })
-}
-
-
-/// Retrieve a git revision identifier that either includes the tag we
-/// are on or the shortened SHA-1. It also contains an indication (`+`)
-/// whether local changes were present.
-///
-/// This function is meant to be run from a Cargo build script. It takes
-/// care of printing necessary `rerun-if-changed` directives to stdout
-/// as expected by `cargo`. As a result, callers are advised to invoke
-/// it only once and cache the result.
-///
-/// The provided `directory` is a path expected to point somewhere into
-/// the git repository in question. Typically, it can simply be set to
-/// the value of the `CARGO_MANIFEST_DIR` variable, as set by Cargo.
-///
-/// The provided `sources` should be a list of source files or
-/// directories (excluding any `git` data) that influence the components
-/// embedding the git revision produced in one way or another. Typically
-/// including `src/` in there is sufficient, but more advanced
-/// applications may depend on additional data.
-///
-/// The function works on a best-effort basis: if git is not available
-/// or no git repository is present, it will fail gracefully by
-/// returning `Ok(None)`.
-#[deprecated(note = "use git_revision_auto() function instead")]
-pub fn git_revision<D, S, I>(directory: D, sources: S) -> Result<Option<String>>
-where
-  D: AsRef<Path>,
-  S: IntoIterator<Item = I>,
-  I: AsRef<Path>,
-{
-  with_valid_git(directory.as_ref(), stdout().lock(), |directory, writer| {
-    revision_impl(directory, sources, writer)
   })
 }
 

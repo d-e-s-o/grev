@@ -2,6 +2,7 @@ Unreleased
 ----------
 - Switched errors to `std::io::Error`
   - Removed `anyhow` dependency
+- Removed deprecated `get_revision()` and `git_revision()` functions
 - Bumped minimum supported Rust version to `1.74`
 
 
