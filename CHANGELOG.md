@@ -1,5 +1,7 @@
 Unreleased
 ----------
+- Switched errors to `std::io::Error`
+  - Removed `anyhow` dependency
 - Bumped minimum supported Rust version to `1.74`
 
 

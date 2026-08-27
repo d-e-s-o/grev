@@ -25,9 +25,6 @@ A crate for working with git revision information from a build script.
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
-anyhow = "1.0.68"
-
 [lints.rust]
 deprecated-safe = "warn"
 future-incompatible = "warn"

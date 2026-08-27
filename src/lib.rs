@@ -9,22 +9,19 @@
 //! Typical usage could look like this:
 //! ```no_run
 //! # use std::env;
-//! # use anyhow::Context as _;
-//! # use anyhow::Result;
 //! use grev::git_revision_auto;
 //!
-//! fn main() -> Result<()> {
+//! fn main() {
 //!   let manifest_dir =
-//!     env::var_os("CARGO_MANIFEST_DIR").context("CARGO_MANIFEST_DIR variable not set")?;
-//!   let pkg_version =
-//!     env::var("CARGO_PKG_VERSION").context("CARGO_PKG_VERSION variable not set")?;
+//!     env::var_os("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR variable not set");
+//!   let pkg_version = env::var("CARGO_PKG_VERSION").expect("CARGO_PKG_VERSION variable not set");
 //!
-//!   if let Some(git_rev) = git_revision_auto(manifest_dir)? {
+//!   let result = git_revision_auto(manifest_dir).expect("failed to retrieve Git revision");
+//!   if let Some(git_rev) = result {
 //!     println!("cargo:rustc-env=VERSION={pkg_version} ({git_rev})");
 //!   } else {
 //!     println!("cargo:rustc-env=VERSION={pkg_version}");
 //!   }
-//!   Ok(())
 //! }
 //! ```
 //!
@@ -40,15 +37,13 @@
 use std::borrow::Cow;
 use std::ffi::OsStr;
 use std::io::stdout;
+use std::io::Error;
+use std::io::Result;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
-
-use anyhow::bail;
-use anyhow::Context;
-use anyhow::Result;
 
 
 const GIT: &str = "git";
@@ -77,7 +72,7 @@ where
     .stdin(Stdio::null())
     .args(args)
     .output()
-    .with_context(|| format!("failed to run `{}`", git_command(args)))?;
+    .map_err(|err| Error::other(format!("failed to run `{}`: {err}", git_command(args))))?;
 
   if !git.status.success() {
     let code = if let Some(code) = git.status.code() {
@@ -86,14 +81,14 @@ where
       String::new()
     };
 
-    bail!(
+    Err(Error::other(format!(
       "`{}` reported non-zero exit-status{}",
       git_command(args),
       code
-    );
+    )))
+  } else {
+    Ok(git.stdout)
   }
-
-  Ok(git.stdout)
 }
 
 
@@ -104,11 +99,11 @@ where
   A: AsRef<OsStr>,
 {
   let output = git_raw_output(directory, args)?;
-  let output = String::from_utf8(output).with_context(|| {
-    format!(
-      "failed to read `{}` output as UTF-8 string",
+  let output = String::from_utf8(output).map_err(|err| {
+    Error::other(format!(
+      "failed to read `{}` output as UTF-8 string: {err}",
       git_command(args)
-    )
+    ))
   })?;
   Ok(output)
 }
@@ -127,7 +122,7 @@ where
     .stderr(Stdio::null())
     .args(args)
     .status()
-    .with_context(|| format!("failed to run `{}`", git_command(args)))
+    .map_err(|err| Error::other(format!("failed to run `{}`: {err}", git_command(args))))
     .map(|status| status.success())
 }
 
@@ -143,10 +138,20 @@ fn bytes_to_path(bytes: &[u8]) -> Result<Cow<'_, Path>> {
 /// Convert a byte slice into a [`PathBuf`].
 #[cfg(not(unix))]
 fn bytes_to_path(bytes: &[u8]) -> Result<Cow<'_, Path>> {
+  use std::io::ErrorKind;
   use std::path::PathBuf;
   use std::str::from_utf8;
 
-  Ok(PathBuf::from(from_utf8(bytes)?).into())
+  let path = from_utf8(bytes).map_err(|_err| {
+    Error::new(
+      ErrorKind::InvalidData,
+      format!(
+        "path `{}` contains non-UTF-8 characters",
+        String::from_utf8_lossy(bytes)
+      ),
+    )
+  })?;
+  Ok(PathBuf::from(path).into())
 }
 
 /// Print rerun-if-changed directives as necessary for reliable workings
