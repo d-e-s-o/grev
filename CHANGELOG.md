@@ -1,8 +1,9 @@
-Unreleased
-----------
+0.2.0
+-----
 - Switched errors to using `Box<dyn std::error::Error>`
   - Removed `anyhow` dependency
 - Removed deprecated `get_revision()` and `git_revision()` functions
+  - Renamed `git_revision_auto()` to `git_revision()`
 - Bumped minimum supported Rust version to `1.74`
 
 
